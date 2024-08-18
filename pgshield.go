@@ -17,12 +17,29 @@ type pgxUniversalClient interface {
 	Begin(ctx context.Context) (pgx.Tx, error)
 }
 
+// Options holds the configuration settings for the Limiter.
+// It includes parameters for key prefix, cleanup intervals, and batch limits.
 type Options struct {
-	KeyPrefix            string
-	KeyCleanupInterval   time.Duration
+	// KeyPrefix is the prefix for keys managed by the limiter.
+	// By default, it is set to "RATE_LIMIT", but it can be customized.
+	KeyPrefix string
+	// KeyCleanupInterval is the interval at which expired keys are cleaned up.
+	// Default is 10 seconds.
+	KeyCleanupInterval time.Duration
+	// KeyCleanupBatchLimit is the maximum number of keys to delete per cleanup run.
+	// Default is 10000.
 	KeyCleanupBatchLimit int
 }
 
+// DefaultOptions returns an Options struct initialized with default values for limiter configuration settings.
+// The default values are designed to provide a basic configuration suitable for many scenarios.
+// Each field in the Options struct is set to a default value, as documented below:
+//
+// Defaults:
+//
+//   - KeyPrefix: The prefix used for keys managed by the limiter. Default is set to "RATE_LIMIT".
+//   - KeyCleanupInterval: The interval between cleanup operations for expired key cleanup. Default is 10 seconds.
+//   - KeyCleanupBatchLimit: The maximum number of keys to delete during each cleanup run. Default is 10000.
 func DefaultOptions() Options {
 	return Options{
 		KeyPrefix:            defaultKeyPrefix,
@@ -31,16 +48,44 @@ func DefaultOptions() Options {
 	}
 }
 
+// Limiter is a struct that represents a rate limiter utilizing a pgx client.
+// It encapsulates the pgxUniversalClient for database operations and configuration Options for the limiter.
 type Limiter struct {
 	client  pgxUniversalClient
 	Options Options
 }
 
+// NewLimiter creates a new Limiter instance with the provided pgx client and options.
+// It initializes the Limiter struct with the given client and options, ensuring that the key cleanup interval
+// and batch limit are greater than 0. If either of these values is invalid, the function logs a fatal error
+// and advises to use DefaultOptions() for proper configuration.
+//
+// Parameters:
+//   - client: A pgxUniversalClient that implements the pgx.Conn or pgxpool.Conn interface for database operations.
+//   - options: An Options struct that holds various limiter configuration settings.
+//     If KeyCleanupInterval or KeyCleanupBatchLimit is set to 0 or less, the function will log a fatal error
+//     and terminate, advising to use DefaultOptions() to get default values for these fields.
+//
+// Returns:
+// - *Limiter: A pointer to the newly created Limiter instance.
+//
+// Usage:
+// To create a new limiter instance, first configure the Options using either DefaultOptions() or by specifying custom values.
+// Then, pass the pgx or pgxpool client and the options to NewLimiter:
+//
+// Example:
+//
+//	opts := DefaultOptions()
+//	pgxClient := pgxpool.New(...)
+//	limiter := NewLimiter(pgxClient, opts)
+//
+// If KeyCleanupInterval or KeyCleanupBatchLimit is not properly set (i.e., is 0 or less), the function will terminate
+// with a fatal error, ensuring that these essential configuration values are provided.
 func NewLimiter(client pgxUniversalClient, options Options) *Limiter {
 	ctx := context.Background()
 
 	if options.KeyCleanupInterval <= 0 || options.KeyCleanupBatchLimit <= 0 {
-		log.Fatalf(`pgshield options error: KeyCleanupInterval and KeyCleanupBatchLimit must be greater than 0. you should call NewDefaultOptions() to get default options`)
+		log.Fatalf("pgshield options error: KeyCleanupInterval and KeyCleanupBatchLimit must be greater than 0. You should call DefaultOptions() to get default options")
 	}
 
 	limiter := &Limiter{
