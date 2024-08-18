@@ -3,7 +3,7 @@ package pgshield
 const createTableTokenBucket = `
 create table if not exists rate_limit  (
     key text primary key,
-    tat double precision not null,
+    tat float not null,
     expires_at timestamptz null
 );
 
@@ -14,29 +14,29 @@ const createFunctionAllowN = `
 create or replace function allow_n(
     rate_limit_key text,
     burst integer,
-    rate double precision,
-    period double precision,
+    rate integer,
+    period float,
     cost integer
 )
 returns table (
     allowed integer,
-    remaining double precision,
-    retry_after double precision,
-    reset_after double precision
+    remaining float,
+    retry_after float,
+    reset_after float
 ) language plpgsql as $$
 declare
-    emission_interval double precision := period / rate;
-    increment double precision := emission_interval * cost;
-    burst_offset double precision := emission_interval * burst;
+    emission_interval float := period / rate;
+    increment float := emission_interval * cost;
+    burst_offset float := emission_interval * burst;
     jan_1_2017 timestamptz := '2017-01-01 00:00:00 utc';
-    now double precision := extract(epoch from current_timestamp - jan_1_2017);
-    tat double precision;
-    new_tat double precision;
-    allow_at double precision;
-    diff double precision;
-    reset_after_time double precision;
-    retry_after_time double precision;
-    remaining_requests double precision;
+    now float := extract(epoch from current_timestamp - jan_1_2017);
+    tat float;
+    new_tat float;
+    allow_at float;
+    diff float;
+    reset_after_time float;
+    retry_after_time float;
+    remaining_requests float;
 begin
     select rl.tat into tat
     from rate_limit rl
@@ -57,7 +57,7 @@ begin
         reset_after_time := tat - now;
         retry_after_time := -diff;
 
-        return query select 0, 0::double precision, retry_after_time, reset_after_time;
+        return query select 0, 0::float, retry_after_time, reset_after_time;
     end if;
 
     reset_after_time := new_tat - now;
@@ -80,27 +80,27 @@ const createFunctionAllowAtMost = `
 create or replace function allow_at_most(
     rate_limit_key text,
     burst integer,
-    rate double precision,
-    period double precision,
+    rate integer,
+    period float,
     cost integer
 )
 returns table (
     allowed integer,
-    remaining double precision,
-    retry_after double precision,
-    reset_after double precision
+    remaining float,
+    retry_after float,
+    reset_after float
 ) language plpgsql as $$
 declare
-    emission_interval double precision := period / rate;
-    burst_offset double precision := emission_interval * burst;
+    emission_interval float := period / rate;
+    burst_offset float := emission_interval * burst;
     jan_1_2017 timestamptz := '2017-01-01 00:00:00 utc';
-    now double precision := extract(epoch from current_timestamp - jan_1_2017);
-    tat double precision;
-    diff double precision;
-    remaining_requests double precision;
-    new_tat double precision;
-    reset_after_time double precision;
-    retry_after_time double precision;
+    now float := extract(epoch from current_timestamp - jan_1_2017);
+    tat float;
+    diff float;
+    remaining_requests float;
+    new_tat float;
+    reset_after_time float;
+    retry_after_time float;
 begin
     select rl.tat into tat
     from rate_limit rl
@@ -120,7 +120,7 @@ begin
         reset_after_time := tat - now;
         retry_after_time := emission_interval - diff;
 
-        return query select 0, 0::double precision, retry_after_time, reset_after_time limit 1;
+        return query select 0, 0::float, retry_after_time, reset_after_time limit 1;
     end if;
 
     if remaining_requests < cost then
@@ -139,7 +139,7 @@ begin
         on conflict (key) do update set tat = excluded.tat, expires_at = excluded.expires_at;
     end if;
 
-    return query select cost, remaining_requests, (-1)::double precision, reset_after_time;
+    return query select cost, remaining_requests, (-1)::float, reset_after_time;
 end;
 $$;
 `
