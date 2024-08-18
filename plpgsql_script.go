@@ -38,17 +38,18 @@ declare
     retry_after_time double precision;
     remaining_requests double precision;
 begin
-    select tat into tat from rate_limit where key = rate_limit_key for update;
+    select rl.tat into tat
+    from rate_limit rl
+    where rl.key = rate_limit_key
+    for update;
 
     if not found then
         tat := now;
     end if;
 
     tat := greatest(tat, now);
-
     new_tat := tat + increment;
     allow_at := new_tat - burst_offset;
-
     diff := now - allow_at;
     remaining_requests := diff / emission_interval;
 
@@ -56,18 +57,21 @@ begin
         reset_after_time := tat - now;
         retry_after_time := -diff;
 
-        return query select 0, 0, retry_after_time, reset_after_time;
+        return query select 0, 0::double precision, retry_after_time, reset_after_time;
     end if;
 
     reset_after_time := new_tat - now;
 
     if reset_after_time > 0 then
         insert into rate_limit(key, tat, expires_at)
-        values (rate_limit_key, new_tat, now() + interval '1 second' * reset_after_time)
-        on conflict (key) do update set tat = excluded.tat, expires_at = excluded.expires_at;
+        values (rate_limit_key, new_tat, now() + interval '1 second' * ceil(reset_after_time))
+        on conflict (key) do update
+        set tat = excluded.tat,
+            expires_at = excluded.expires_at;
     end if;
 
-    return query select cost, remaining_requests, -1, reset_after_time;
+    retry_after_time := -1;
+    return query select cost, remaining_requests, retry_after_time, reset_after_time;
 end;
 $$;
 `
@@ -98,7 +102,10 @@ declare
     reset_after_time double precision;
     retry_after_time double precision;
 begin
-    select tat into tat from rate_limit where key = rate_limit_key for update;
+    select rl.tat into tat
+    from rate_limit rl
+    where rl.key = rate_limit_key
+    for update;
 
     if not found then
         tat := now;
@@ -113,7 +120,7 @@ begin
         reset_after_time := tat - now;
         retry_after_time := emission_interval - diff;
 
-        return query select 0, 0, retry_after_time, reset_after_time;
+        return query select 0, 0::double precision, retry_after_time, reset_after_time limit 1;
     end if;
 
     if remaining_requests < cost then
@@ -132,14 +139,14 @@ begin
         on conflict (key) do update set tat = excluded.tat, expires_at = excluded.expires_at;
     end if;
 
-    return query select cost, remaining_requests, -1, reset_after_time;
+    return query select cost, remaining_requests, (-1)::double precision, reset_after_time;
 end;
 $$;
 `
 const deleteRateLimitByExpiry = `delete from rate_limit where expires_at < now() limit $1;`
 
-const allowN = `select allowed, remaining, retry_after, reset_after from allow_n($1, $2, $3, $4, $5)`
+const allowN = `select allowed, remaining, retry_after, reset_after from allow_n($1, $2, $3, $4, $5) limit 1`
 
-const allowAtMost = `select allowed, remaining, retry_after, reset_after from allow_at_most($1, $2, $3, $4, $5)`
+const allowAtMost = `select allowed, remaining, retry_after, reset_after from allow_at_most($1, $2, $3, $4, $5) limit 1`
 
 const deleteRateLimitByKey = `delete from rate_limit where key = $1`
