@@ -1,13 +1,13 @@
 # PgShield Go
 
 PgShield Go is a powerful rate limiting package for Go, utilizing PostgreSQL or YugabyteDB to manage request rates and handle traffic surges efficiently. 
-It leverages the leaky bucket algorithm to provide smooth and reliable rate limiting.
+It leverages the token bucket algorithm to provide smooth and reliable rate limiting.
 
 ## Features
 
 - **Database Scalability**: Operates with PostgreSQL for single-node scenarios or YugabyteDB for distributed horizontal scalability, adapting to your infrastructure needs.
 
-- **Leaky Bucket Algorithm**: Implements the leaky bucket rate limiting algorithm to smooth out bursts of traffic by maintaining a fixed request rate and managing excess requests effectively.
+- **Token Bucket Algorithm**: Implements rate limiting by allowing requests to accumulate tokens at a fixed rate, handling bursts and smoothing traffic while enforcing a maximum burst size.
 
 - **Multi-System Support**: Compatible with both PostgreSQL and YugabyteDB, offering flexibility for integration with your existing database systems.
 
