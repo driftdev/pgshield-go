@@ -7,13 +7,13 @@ It leverages the token bucket algorithm to provide smooth and reliable rate limi
 
 - **Token Bucket Algorithm**: Implements rate limiting by allowing requests to accumulate tokens at a fixed rate, handling bursts and smoothing traffic while enforcing a maximum burst size.
 
-- **Database Scalability**: Operates with PostgreSQL for single-node scenarios or YugabyteDB for distributed horizontal scalability, adapting to your infrastructure needs.
-
 - **Multi-System Support**: Compatible with both PostgreSQL and YugabyteDB, offering flexibility for integration with your existing database systems.
 
 - **High Performance**: Engineered for high performance and low latency, making it well-suited for high-throughput applications.
 
 - **Configurable Limits**: Easily set rate limits according to your application’s requirements, including maximum request rates and burst capacities.
+
+- **Database Scalability**: Operates with PostgreSQL for single-node scenarios or YugabyteDB for distributed horizontal scalability, adapting to your infrastructure needs.
 
 - **Transactional Reliability**: Utilizes PL/pgSQL functions to execute all logic within the database, ensuring transactional reliability and ACID compliance.
 
