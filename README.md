@@ -5,9 +5,9 @@ It leverages the token bucket algorithm to provide smooth and reliable rate limi
 
 ## Features
 
-- **Database Scalability**: Operates with PostgreSQL for single-node scenarios or YugabyteDB for distributed horizontal scalability, adapting to your infrastructure needs.
-
 - **Token Bucket Algorithm**: Implements rate limiting by allowing requests to accumulate tokens at a fixed rate, handling bursts and smoothing traffic while enforcing a maximum burst size.
+
+- **Database Scalability**: Operates with PostgreSQL for single-node scenarios or YugabyteDB for distributed horizontal scalability, adapting to your infrastructure needs.
 
 - **Multi-System Support**: Compatible with both PostgreSQL and YugabyteDB, offering flexibility for integration with your existing database systems.
 
